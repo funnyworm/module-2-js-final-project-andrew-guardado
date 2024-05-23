@@ -1,0 +1,28 @@
+body {
+    margin: auto;
+    background-color: #e75a3e;
+    padding: 10px;
+    font-family: monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#flex-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid;
+    background-color: #a8a8a8;
+    padding: 40px;
+}
+
+#buttons {
+    display: none;
+}
+
+#dealer-score {
+    display: none;
+}
