@@ -19,10 +19,8 @@ const playerCash = document.getElementById('player-cash');
 const playerTitle = document.getElementById('player-title');
 const highScoreList = document.getElementById('high-score-list');
 const clearButton = document.getElementById('clear-scores-button');
+const gameTitle = document.getElementById('title');
 
-// Backside of card used to hide Dealer's second card
-// const cardHidden = new Image();
-// cardHidden.src = 'images/backside.png';
 
 class Player {
     constructor(name, game) {
@@ -87,6 +85,8 @@ class Game {
     constructor() {
         this.cards = [];
         this.players = [];
+
+        // Functions used for buttons are in the constructor
         this.hitButtonClickListener = () => {
             const player = this.players[1];
 
@@ -97,6 +97,7 @@ class Game {
                 console.log('BUST!');
                 btnContainer.style.display = 'none';
                 againContainer.style.display = 'block';
+                gameTitle.innerHTML = 'BUST';
 
                 // Remove wager and update display
                 player.wager = 0;
@@ -108,6 +109,7 @@ class Game {
                 if (player.cash === 0) {
                     console.log('GAME OVER');
                     againContainer.style.display = 'none';
+                    gameTitle.innerHTML = 'GAME OVER';
 
                     setTimeout(() => {
                         this.gameOver();
@@ -351,7 +353,8 @@ class Game {
                     });
                 }
             };
-            cardImage.style.width = '100px';
+            cardImage.style.width = '125px';
+            cardImage.style.padding = '2px';
         });
     }
 
@@ -367,6 +370,7 @@ class Game {
         if(player.score === 21) {
             
             againContainer.style.display = 'block';
+            gameTitle.innerHTML = 'BLACKJACK!!!';
 
             // Pay out 3:2
             player.cash = player.cash + (2.5 * player.wager);
@@ -380,7 +384,6 @@ class Game {
             
             console.log('BLACKJACK!!');
             btnContainer.style.display = 'none';
-            
         }
 
         
@@ -394,6 +397,7 @@ class Game {
 
         dealerScore.style.display = 'block';
 
+        // Hit until dealer score is greater than player score
         while(dealer.score < player.score) {
             dealer.hitMe();
         }
@@ -401,6 +405,7 @@ class Game {
         if(dealer.score > 21) {
             console.log('DEALER BUSTS. PLAYER WINS');
             this.displayCards(dealer, 'dealer-hand');
+            gameTitle.innerHTML = 'DEALER BUSTS';
 
             // Payout 2:1
             player.cash = player.cash + (2 * player.wager);
@@ -408,12 +413,14 @@ class Game {
         } else if (dealer.score === player.score) {
             console.log('PUSH');
             this.displayCards(dealer, 'dealer-hand');
+            gameTitle.innerHTML = 'PUSH';
 
             // Return the wager to cash pool
             player.cash += player.wager;
         } else {
             console.log('DEALER WINS');
             this.displayCards(dealer, 'dealer-hand');
+            gameTitle.innerHTML = 'DEALER WINS';
         }
 
         // Reset wager and update cash/wager display
@@ -428,6 +435,7 @@ class Game {
         if (player.cash === 0) {
             console.log('GAME OVER');
             againContainer.style.display = 'none';
+            gameTitle.innerHTML = 'GAME OVER';
 
             setTimeout(() => {
                 this.gameOver();
@@ -439,7 +447,6 @@ class Game {
 
 
     playAgain() {
-        //inputContainer.style.display = 'none';
         againContainer.style.display = 'none';
         dealerHand.style.display = 'none';
 
@@ -457,6 +464,7 @@ class Game {
         this.shuffleDeck();
 
         dealerScore.style.display = 'none';
+        gameTitle.innerHTML = 'BLACKJACK';
 
         this.wager();
     }
@@ -498,6 +506,9 @@ startBtn.addEventListener('click', () => {
         alert('Please enter your name.');
     }
 });
+
+
+
 
 
 // Utility functions for high scores
