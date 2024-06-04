@@ -1,12 +1,28 @@
-const startBtn = document.getElementById('startBtn');
+const startBtn = document.getElementById('start-button');
 const btnContainer = document.getElementById('buttons');
 const hitButton = document.getElementById('hit-button');
 const standButton = document.getElementById('stand-button');
 const dealerScore = document.getElementById('dealer-score');
+const inputContainer = document.getElementById('name-input');
+const againButton = document.getElementById('again-button');
+const againContainer = document.getElementById('again-container');
+const playerHand = document.getElementById('player-hand');
+const dealerHand = document.getElementById('dealer-hand');
+const nameInput = document.getElementById('player-name');
+const wagerContainer = document.getElementById('wager-buttons');
+const lilWager = document.getElementById('lil-button');
+const quarterWager = document.getElementById('quarter-button');
+const halfWager = document.getElementById('half-button');
+const fullWager = document.getElementById('all-button');
+const playerWager = document.getElementById('player-wager');
+const playerCash = document.getElementById('player-cash');
+const playerTitle = document.getElementById('player-title');
+const highScoreList = document.getElementById('high-score-list');
+const clearButton = document.getElementById('clear-scores-button');
 
 // Backside of card used to hide Dealer's second card
-const cardHidden = new Image();
-cardHidden.src = 'images/backside.png';
+// const cardHidden = new Image();
+// cardHidden.src = 'images/backside.png';
 
 class Player {
     constructor(name, game) {
@@ -15,8 +31,8 @@ class Player {
         this.score = 0;
         this.cash = 0;
         this.wager = 0;
-        this.isTurn = false;
         this.game = game;
+        this.highScore = 0;
     }
 
     receiveCard(card) {
@@ -29,47 +45,34 @@ class Player {
         this.receiveCard(hit);
     }
 
-    // updateScore(card) {
-    //     const rank = card.rank;
-
-    //     // Assigns a score based on a cards rank
-    //     // Aces initially are given a score of 11
-    //     if(rank === 'A') {
-    //         this.score += 11;
-    //     } else if(['J', 'Q', 'K'].includes(rank)) {
-    //         this.score += 10;
-    //     } else {
-    //         this.score += parseInt(rank);
-    //     }
-
-    //     // If score is over 21 and hand contains an Ace, subtract 10 (ace can be 1 or 11)
-    //     if(this.score > 21 && this.hand.some(card => card.rank === 'A')) {
-    //         this.score -= 10;
-    //     }
-    // }
-
     updateScore(card) {
-        const rank = card.rank;
+       
+        // Reset the score
+        this.score = 0;
+        let aceCount = 0;
+
+
+        // Calculate initial score
+        this.hand.forEach(card => {
+            const rank = card.rank;
     
-        // Assigns a score based on a card's rank
-        if (['J', 'Q', 'K'].includes(rank)) {
-            this.score += 10;
-        } else if (rank === 'A') {
-            // Check if adding 11 would cause a bust, if so, add 1 instead
-            this.score += (this.score + 11 > 21) ? 1 : 11;
-        } else {
-            this.score += parseInt(rank);
+            // Assigns a score based on a card's rank
+            if (['J', 'Q', 'K'].includes(rank)) {
+                this.score += 10;
+            } else if (rank === 'A') {
+                // Initially treat the Ace as 11 points
+                aceCount += 1;
+                this.score += 11;
+            } else {
+                this.score += parseInt(rank);
+            }
+        });
+
+        // Adjust the score if there are Aces and the score is over 21
+        while (this.score > 21 && aceCount > 0) {
+            this.score -= 10;
+            aceCount -= 1;
         }
-    
-        // Check for bust with Aces in hand
-        // if (this.score > 21 && this.hand.some(card => card.rank === 'A')) {
-        //     // Iterate over Aces and change their value to 1 until the score is under 21
-        //     this.hand.filter(card => card.rank === 'A').forEach(() => {
-        //         if (this.score > 21) {
-        //             this.score -= 10;
-        //         }
-        //     });
-        // }
     }
 };
 
@@ -84,9 +87,170 @@ class Game {
     constructor() {
         this.cards = [];
         this.players = [];
+        this.hitButtonClickListener = () => {
+            const player = this.players[1];
+
+            player.hitMe();
+            this.displayCards(player, 'player-hand');
+
+            if (player.score > 21) {
+                console.log('BUST!');
+                btnContainer.style.display = 'none';
+                againContainer.style.display = 'block';
+
+                // Remove wager and update display
+                player.wager = 0;
+
+                playerCash.textContent = `Cash: $${player.cash}`;
+                playerWager.textContent = `Wager: $${player.wager}`;
+
+                // Check if player is out of cash
+                if (player.cash === 0) {
+                    console.log('GAME OVER');
+                    againContainer.style.display = 'none';
+
+                    setTimeout(() => {
+                        this.gameOver();
+                    }, 5000);
+                }
+
+                // Add event listener for play again button
+                againButton.addEventListener('click', this.playAgainButtonClickListener);
+                
+                // Remove the event listener
+                this.removeHitButtonListener(); 
+            } else if (player.score === 21) {
+                console.log('21');
+                btnContainer.style.display = 'none';
+                this.dealerTurn();
+
+                // Remove the event listener
+                this.removeHitButtonListener(); 
+            }
+        };
+
+        this.standButtonClickListener = () => {
+            btnContainer.style.display = 'none';
+            console.log('PLAYER STANDS');
+            this.dealerTurn();
+            this.removeStandButtonListener();
+        }
+
+        this.playAgainButtonClickListener = () => {
+            
+            this.playAgain();
+            //this.removePlayAgainButtonListener();
+        }
+
+        this.wagerLilButtonClickListener = () => {
+            const player = this.players[1];
+
+            player.wager = Math.round(0.1 * player.cash);
+            player.cash -= player.wager;
+            wagerContainer.style.display = 'none';
+            dealerHand.style.display = 'block';
+
+            this.dealCards();
+
+            console.log(this.cards);
+            console.log(this.players);
+
+            this.displayCards(this.players[0], 'dealer-hand', false);
+            this.displayCards(player, 'player-hand');
+
+            playerCash.textContent = `Cash: $${player.cash}`;
+            playerWager.textContent = `Wager: $${player.wager}`;
+            playerTitle.textContent = `${player.name}'s Hand`;
+
+            this.playerTurn();
+        }
+
+        this.wagerQuarterButtonClickListener = () => {
+            const player = this.players[1];
+
+            player.wager = Math.round(0.25 * player.cash);
+            player.cash -= player.wager;
+            wagerContainer.style.display = 'none';
+            dealerHand.style.display = 'block';
+
+            this.dealCards();
+
+            console.log(this.cards);
+            console.log(this.players);
+
+            this.displayCards(this.players[0], 'dealer-hand', false);
+            this.displayCards(player, 'player-hand');
+
+            playerCash.textContent = `Cash: $${player.cash}`;
+            playerWager.textContent = `Wager: $${player.wager}`;
+            playerTitle.textContent = `${player.name}'s Hand`;
+
+            this.playerTurn();
+        }
+
+        this.wagerHalfButtonClickListener = () => {
+            const player = this.players[1];
+
+            player.wager = Math.round(0.5 * player.cash);
+            player.cash -= player.wager;
+            wagerContainer.style.display = 'none';
+            dealerHand.style.display = 'block';
+
+            this.dealCards();
+
+            console.log(this.cards);
+            console.log(this.players);
+
+            this.displayCards(this.players[0], 'dealer-hand', false);
+            this.displayCards(player, 'player-hand');
+
+            playerCash.textContent = `Cash: $${player.cash}`;
+            playerWager.textContent = `Wager: $${player.wager}`;
+            playerTitle.textContent = `${player.name}'s Hand`;
+
+            this.playerTurn();
+        }
+
+        this.wagerAllButtonClickListener = () => {
+            const player = this.players[1];
+
+            player.wager = player.cash;
+            player.cash -= player.wager;
+            wagerContainer.style.display = 'none';
+            dealerHand.style.display = 'block';
+
+            this.dealCards();
+
+            console.log(this.cards);
+            console.log(this.players);
+
+            this.displayCards(this.players[0], 'dealer-hand', false);
+            this.displayCards(player, 'player-hand');
+
+            playerCash.textContent = `Cash: $${player.cash}`;
+            playerWager.textContent = `Wager: $${player.wager}`;
+            playerTitle.textContent = `${player.name}'s Hand`;
+
+            this.playerTurn();
+        }
+    }
+
+    // Remove event listener functions
+    // The functions added to event listners call these to remove themselves
+    removeHitButtonListener() {
+        hitButton.removeEventListener('click', this.hitButtonClickListener);
+    }
+
+    removeStandButtonListener() {
+        standButton.removeEventListener('click', this.standButtonClickListener);
+    }
+
+    removePlayAgainButtonListener() {
+        againButton.removeEventListener('click', this.playAgainButtonClickListener);
     }
 
     createDeck() {
+        this.cards = [];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
         const suits = ['club', 'diamond', 'heart', 'spade'];
     
@@ -109,6 +273,8 @@ class Game {
 
     addPlayer(playerName) {
         let player1 = new Player(playerName, this);
+        player1.cash = 1000;
+        player1.highScore = 1000;
         this.players.push(player1);
     };
 
@@ -118,26 +284,25 @@ class Game {
         this.players.push(dealer);
     }
 
-    startGame() {
+    startGame(playerName) {
+        inputContainer.style.display = 'none';
+        dealerHand.style.display = 'none';
+        playerHand.style.display = 'block';
+
+        // Clear players array for use when getting Game Over
+        this.players = [];
+        
         this.cards = this.createDeck();
         this.shuffleDeck();
         this.addDealer();
-        this.addPlayer('bob');
+        this.addPlayer(playerName);
         const dealer = this.players[0];
-        const player1 = this.players[1];
-        this.dealCards();
+        const player = this.players[1];
 
-        console.log(this.cards);
-        console.log(this.players);
-
-        this.displayCards(dealer, 'dealer-hand', false);
-        this.displayCards(player1, 'player-hand');
-
-        this.playerTurn();
+        playerCash.textContent = `Cash: $${player.cash}`;
+        playerWager.textContent = `Wager: $${player.wager}`;
         
-        //this.showButtons();
-        //player1.hitMe();
-        //console.log(this.players);
+        this.wager();
     }
 
     dealCards() {
@@ -158,85 +323,221 @@ class Game {
         cardsElement.innerHTML = '';
         scoreElement.textContent = `Total Score: ${player.score}`;
 
-        // Display cards
+
+        // Preload card images
+        // Was having issues with images loading async. so I needed to make sure all image were loaded before appending to DOM
+        const cardImages = [];
+        let loadedCount = 0;
+        const totalCount = player.hand.length;
+
         player.hand.forEach((card, index) => {
+            const cardImage = new Image();
 
-            // Hide dealer's second card
-            if(!showAllCards && player.name === 'Dealer' && index === 1) {
-                cardHidden.onload = function() {
-                    cardsElement.appendChild(cardHidden);
-                }
-                cardHidden.style.width = '100px';
-            } else{
-                const cardImage = new Image();
+            // Checks if this is the dealer's second card, so it can be hidden
+            if (!showAllCards && player.name === 'Dealer' && index === 1) {
+                cardImage.src = 'images/backside.png';
+            } else {
                 cardImage.src = card.imagePath;
-
-                cardImage.onload = function() {
-                    cardsElement.appendChild(cardImage);
-                }
-
-                cardImage.alt = `${card.rank} of ${card.suit}`;
-                cardImage.style.width = '100px';
             }
-        })
+            cardImages.push(cardImage);
+            cardImage.onload = function() {
+                loadedCount++;
+
+                // Appends the cardImages array to DOM only after loadedCount is equal to hand length
+                if (loadedCount === totalCount) {
+                    // All images loaded, append to the DOM
+                    cardImages.forEach((image) => {
+                        cardsElement.appendChild(image);
+                    });
+                }
+            };
+            cardImage.style.width = '100px';
+        });
+    }
+
+    clearCards(elementId) {
+        const cardsElement = document.getElementById(elementId);
+        cardsElement.innerHTML = '';
     }
 
     playerTurn() {
         btnContainer.style.display = 'block';
+        const player = this.players[1];
 
-        if(this.players[1].score === 21) {
+        if(player.score === 21) {
+            
+            againContainer.style.display = 'block';
+
+            // Pay out 3:2
+            player.cash = player.cash + (2.5 * player.wager);
+            player.wager = 0;
+
+            playerCash.textContent = `Cash: $${player.cash}`;
+            playerWager.textContent = `Wager: $${player.wager}`;
+
+            // Add event listener for play again button
+            againButton.addEventListener('click', this.playAgainButtonClickListener);
+            
             console.log('BLACKJACK!!');
             btnContainer.style.display = 'none';
+            
         }
 
-        hitButton.addEventListener('click', () => {
-            this.players[1].hitMe();
-            this.displayCards(this.players[1], 'player-hand');
-
-            if(this.players[1].score > 21) {
-                console.log('BUST!');
-                btnContainer.style.display = 'none';
-                //player.isTurn = false;
-            } else if(this.players[1].score === 21) {
-                console.log('21');
-                this.dealerTurn();
-            }
-        })
-
-        standButton.addEventListener('click', () => {
-            console.log('PLAYER STANDS');
-            this.dealerTurn();
-        })
+        
+        hitButton.addEventListener('click', this.hitButtonClickListener);
+        standButton.addEventListener('click', this.standButtonClickListener);
     }
 
-    dealerTurn() {
+     dealerTurn() {
+        const dealer = this.players[0];
+        const player = this.players[1];
 
         dealerScore.style.display = 'block';
 
-        while(this.players[0].score < this.players[1].score) {
-            this.players[0].hitMe();
+        while(dealer.score < player.score) {
+            dealer.hitMe();
         }
 
-        if(this.players[0].score > 21) {
+        if(dealer.score > 21) {
             console.log('DEALER BUSTS. PLAYER WINS');
-            this.displayCards(this.players[0], 'dealer-hand');
-        } else if (this.players[0].score === this.players[1].score) {
+            this.displayCards(dealer, 'dealer-hand');
+
+            // Payout 2:1
+            player.cash = player.cash + (2 * player.wager);
+
+        } else if (dealer.score === player.score) {
             console.log('PUSH');
-            this.displayCards(this.players[0], 'dealer-hand');
+            this.displayCards(dealer, 'dealer-hand');
+
+            // Return the wager to cash pool
+            player.cash += player.wager;
         } else {
             console.log('DEALER WINS');
-            this.displayCards(this.players[0], 'dealer-hand');
+            this.displayCards(dealer, 'dealer-hand');
         }
+
+        // Reset wager and update cash/wager display
+        player.wager = 0;
+
+        playerCash.textContent = `Cash: $${player.cash}`;
+        playerWager.textContent = `Wager: $${player.wager}`;
+
+        againContainer.style.display = 'block';
+
+        // Check if player is out of cash
+        if (player.cash === 0) {
+            console.log('GAME OVER');
+            againContainer.style.display = 'none';
+
+            setTimeout(() => {
+                this.gameOver();
+            }, 5000);
+        }
+
+        againButton.addEventListener('click', this.playAgainButtonClickListener);
     }
 
+
+    playAgain() {
+        //inputContainer.style.display = 'none';
+        againContainer.style.display = 'none';
+        dealerHand.style.display = 'none';
+
+        // Reset player and dealer hands/scores
+        for (let i = 0; i < this.players.length; i++) {
+            this.players[i].hand = []; // Reset hand to an empty array
+            this.players[i].score = 0;
+        }
+
+        // Clears card HTML
+        this.clearCards('player-cards');
+        this.clearCards('dealer-cards');
+
+        this.createDeck();
+        this.shuffleDeck();
+
+        dealerScore.style.display = 'none';
+
+        this.wager();
+    }
+
+    wager() {
+        const player = this.players[1];
+        wagerContainer.style.display = 'block';
+
+        playerTitle.textContent = 'Enter Your Wager';
+
+        // Check high score
+        if(player.cash > player.highScore) {
+            player.highScore = player.cash;
+        }
+
+        lilWager.addEventListener('click', this.wagerLilButtonClickListener);
+        quarterWager.addEventListener('click', this.wagerQuarterButtonClickListener);
+        halfWager.addEventListener('click', this.wagerHalfButtonClickListener);
+        fullWager.addEventListener('click', this.wagerAllButtonClickListener);
+    }
+
+    gameOver() {
+        const player = this.players[1];
+        saveHighScore(player.name, player.highScore);
+        updateHighScoreList();
+        location.reload();
+    }
 }
 
-// let deck1 = new Deck();
-// deck1.createDeck();
-// console.log(deck1.cards.slice());
 
-// deck1.shuffle();
-// console.log(deck1.cards);
+// Used when starting a new game
+startBtn.addEventListener('click', () => {
+    const playerName = nameInput.value;
+    if(playerName) {
+        const game1 = new Game();
+        game1.startGame(playerName);
 
-let game1 = new Game;
-game1.startGame();
+    } else {
+        alert('Please enter your name.');
+    }
+});
+
+
+// Utility functions for high scores
+function saveHighScore(playerName, score) {
+    let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+    highScores.push({ name: playerName, score: score });
+    highScores.sort((a, b) => b.score - a.score); // Sort by score descending
+    highScores = highScores.slice(0, 5); // Keep only top 5 scores
+    localStorage.setItem('highScores', JSON.stringify(highScores));
+}
+
+function getHighScores() {
+    return JSON.parse(localStorage.getItem('highScores')) || [];
+}
+
+// Function to update the high score list in the HTML
+function updateHighScoreList() {
+    const highScores = getHighScores();
+    const highScoreList = document.getElementById('high-score-list');
+
+    // Clear the current list
+    highScoreList.innerHTML = '';
+
+    // Add high scores to the list
+    highScores.forEach(score => {
+        const li = document.createElement('li');
+        li.textContent = `${score.name}: $${score.score}`;
+        highScoreList.appendChild(li);
+    });
+}
+
+// Function to clear high scores
+function clearHighScores() {
+    localStorage.removeItem('highScores'); // Clear the high scores from local storage
+    const highScoreList = document.getElementById('high-score-list');
+    highScoreList.innerHTML = ''; // Clear the high scores list display
+}
+
+// Call updateHighScoreList on page load
+updateHighScoreList();
+
+// Event listener for clear high scores button
+clearButton.addEventListener('click', clearHighScores);
